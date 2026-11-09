@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
 """
 ===================================
-A股自选股智能分析系统 - 主调度程序
+AI stock analysis system - main scheduler
 ===================================
 
-职责：
-1. 协调各模块完成股票分析流程
-2. 实现低并发的线程池调度
-3. 全局异常处理，确保单股失败不影响整体
-4. 提供命令行入口
+Responsibilities:
+1. Coordinate the stock analysis workflow across modules
+2. Manage low-concurrency thread pool scheduling
+3. Handle global exceptions so one failed stock does not stop the whole run
+4. Provide the command-line entrypoint
 
-使用方式：
-    python main.py              # 正常运行
-    python main.py --debug      # 调试模式
-    python main.py --dry-run    # 仅获取数据不分析
+Usage:
+    python main.py              # Normal execution
+    python main.py --debug      # Debug mode
+    python main.py --dry-run    # Fetch data without running analysis
 
-交易理念（已融入分析）：
-- 严进策略：不追高，乖离率 > 5% 不买入
-- 趋势交易：只做 MA5>MA10>MA20 多头排列
-- 效率优先：关注筹码集中度好的股票
-- 买点偏好：缩量回踩 MA5/MA10 支撑
+Trading principles already embedded in the analysis:
+- Strict entry strategy: avoid chasing highs; do not buy if the deviation exceeds 5%
+- Trend trading: only favor MA5 > MA10 > MA20 bullish alignment
+- Efficiency first: prioritize stocks with strong chip concentration
+- Entry preference: buy on pullbacks to MA5/MA10 support with shrinking volume
 """
 from __future__ import annotations
 
@@ -35,10 +35,10 @@ from src.config import setup_env
 _INITIAL_PROCESS_ENV = dict(os.environ)
 setup_env()
 
-# 代理配置 - 通过 USE_PROXY 环境变量控制，默认关闭
-# GitHub Actions 环境自动跳过代理配置
+# Proxy configuration - controlled via the USE_PROXY environment variable, disabled by default.
+# GitHub Actions skips proxy setup automatically.
 if os.getenv("GITHUB_ACTIONS") != "true" and os.getenv("USE_PROXY", "false").lower() == "true":
-    # 本地开发环境，启用代理（可在 .env 中配置 PROXY_HOST 和 PROXY_PORT）
+    # Local development environment: enable the proxy (configure PROXY_HOST and PROXY_PORT in .env)
     proxy_host = os.getenv("PROXY_HOST", "127.0.0.1")
     proxy_port = os.getenv("PROXY_PORT", "10809")
     proxy_url = f"http://{proxy_host}:{proxy_port}"
@@ -153,7 +153,7 @@ def _read_active_env_values() -> Optional[Dict[str, str]]:
     try:
         values = dotenv_values(env_path)
     except Exception as exc:  # pragma: no cover - defensive branch
-        logger.warning("读取配置文件 %s 失败，继续沿用当前环境变量: %s", env_path, exc)
+        logger.warning("Failed to read config file %s; continuing with the current environment variables: %s", env_path, exc)
         return None
 
     return {
@@ -226,9 +226,10 @@ def _setup_runtime_logging(log_dir: str, debug: bool = False) -> bool:
         return True
     except OSError as exc:
         logger.warning(
-            "文件日志初始化失败，已降级为控制台日志输出；日志目录 %r 当前不可写或不可创建: %s。"
-            "官方 Docker 镜像启动入口会自动修复默认挂载目录权限；若仍失败，"
-            "请检查是否使用了 --user、只读挂载、rootless Docker 或 NFS 等限制写入的环境。",
+            "File logging initialization failed; falling back to console logging. "
+            "The log directory %r is not writable or cannot be created: %s. "
+            "The official Docker entrypoint automatically repairs default mounted directory permissions; "
+            "if it still fails, check for --user, read-only mounts, rootless Docker, or NFS restrictions.",
             log_dir,
             exc,
         )
